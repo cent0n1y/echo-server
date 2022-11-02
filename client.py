@@ -1,7 +1,7 @@
 import socket
 import logging
 
-logging.basicConfig(filename="server.log", level=logging.INFO)
+logging.basicConfig(filename="client.log", level=logging.INFO)
 
 
 def set_host():
@@ -15,7 +15,9 @@ def set_host():
                 host = msg
             break
         except:
-            print('You enter not supported HOST, please try again')
+            log = 'You enter not supported HOST, please try again'
+            logging.error(log)
+            print(log)
     return host
 
 
@@ -27,80 +29,96 @@ def set_port():
             if msg == "def":
                 port = 9090
                 break
-            elif type(msg) is not int:
+            elif msg is not int:
                 print('You enter not supported PORT, please try again')
             else:
                 port = msg
                 break
         except:
-            print('You enter not supported PORT, please try again')
+            log = 'You enter not supported PORT, please try again'
+            logging.error(log)
+            print(log)
     return port
 
 
-def message_handler(conn, addr):
+def set_login():
     while True:
+        print('Type your login')
         try:
-            msg = conn.recv(1024)
-            if not msg:
+            msg = input()
+            if type(msg) is not str:
+                print("not str")
+                print('You enter not supported login, please try again')
+            else:
+                login = msg
                 break
-
-
-
-            data = "You do not have access to use this server"
-            send_message(data)
-            conn.close()
-            log = 'Last user do not enter a right login or password'
-            logging.info(log)
-            print(log)
-            break
-
-        except Exception as ex:
-            log = 'An error in receiving messages was occurred by exception: %s' % ex
+        except:
+            log = 'You enter not supported login, please try again'
             logging.error(log)
             print(log)
-        else:
-            send_message(data)
+    return login
 
 
-def send_message(data):
-    try:
-        conn.send(data.encode())
-        log = "Last message was send back to client successfully"
-        logging.info(log)
-        print(log)
-    except Exception as ex:
-        log = 'An error in sending message was occurred by exception: %s' % ex
-        logging.error(log)
-        print(log)
+def set_passwd():
+    while True:
+        print('Type your password')
+        try:
+            msg = input()
+            if type(msg) is not str:
+                print('You enter not supported password, please try again')
+            else:
+                passwd = msg
+                break
+        except:
+            log = 'You enter not supported login, please try again'
+            logging.error(log)
+            print(log)
+    return passwd
 
 
+LOGIN = set_login()
+PASSWD = set_passwd()
 HOST = set_host()
 PORT = set_port()
 
-log = "Server started with HOST: %s and PORT: %s" % (HOST, PORT)
-logging.info(log)
-print(log)
+sock = socket.socket()
+try:
+    sock.connect((HOST, PORT))
+    data = ''
+    print('Write your message below:')
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-while True:
-    try:
-        sock.bind((HOST, PORT))
-    except:
-        log = 'Unable to connect to %s PORT. Trying to connect to %s PORT' % (PORT, PORT+1)
-        logging.error(log)
+    while True:
+        msg = input()
+        if msg == 'exit':
+            break
+        data += msg
+        log = "Current message: %s\n You can continue write messages, or write 'exit' for sending message" % data
+        logging.info(log)
         print(log)
-        PORT = PORT + 1
-    else:
-        break
 
-while True:
-    log = 'Listening %s port...' % PORT
-    logging.info(log)
+    try:
+        data = "%s:%s:%s" % (LOGIN, PASSWD, data)
+        sock.send(data.encode())
+        log = 'Your message was sent successfully'
+        logging.info(log)
+        print(log)
+    except Exception as ex:
+        logging.error(ex)
+        print(ex)
+
+    try:
+        msg = sock.recv(1024).decode()
+        log = '\nYou have receive new message: \n%s' % msg
+        logging.info(log)
+        print(log)
+    except Exception as ex:
+        logging.error(ex)
+        print(ex)
+
+    sock.close()
+
+
+except Exception as ex:
+    log = "Failed to connect to server\nException is: %s" % ex
+    logging.error(log)
     print(log)
-
-    sock.listen(1)
-    conn, addr = sock.accept()
-    message_handler(conn, addr)
-
-    conn.close()
